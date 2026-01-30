@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>تطبيق سعيد علي</title>
+    
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3209/3209265.png">
+    
+    <style>
+        :root {
+            --primary: #0f172a; --accent: #e11d48; --gold: #f59e0b; --success: #10b981; --bg: #f8fafc;
+        }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: env(safe-area-inset-top) 15px 20px 15px; color: var(--primary); }
+        
+        /* تصميم الهيدر (التطبيق) */
+        .app-header { background: linear-gradient(135deg, var(--primary), #1e293b); color: white; border-radius: 0 0 30px 30px; margin: -15px -15px 20px -15px; padding: 40px 20px 25px 20px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .nav-row { display: flex; justify-content: space-between; align-items: center; }
+        .nav-btn { background: rgba(255,255,255,0.15); border: none; color: white; width: 50px; height: 50px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .nav-btn:active { background: var(--gold); }
+        
+        .main-day { font-size: 3.5rem; font-weight: 900; margin: 0; }
+        .main-clock { font-size: 2.2rem; font-family: monospace; color: var(--gold); margin: 5px 0; font-weight: bold; }
+        .date-chip { background: rgba(255,255,255,0.1); padding: 8px 18px; border-radius: 50px; font-size: 1rem; border: 1px solid rgba(255,255,255,0.1); margin: 5px; display: inline-block; }
+
+        /* التنبيه */
+        #dutyAlert { display: none; background: var(--accent); color: white; padding: 15px; border-radius: 15px; margin-bottom: 20px; text-align: center; font-weight: bold; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3); border: 2px solid white; animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from {transform: translateY(-20px); opacity:0;} to {transform: translateY(0); opacity:1;} }
+
+        /* الكروت */
+        .card { background: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-right: 10px solid var(--primary); }
+        .card.samar { border-right-color: var(--gold); }
+        .card h3 { margin: 0 0 12px 0; font-size: 0.9rem; color: #64748b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+        .card .val { font-size: 1.6rem; font-weight: bold; color: var(--primary); }
+
+        /* توزيع الفترات */
+        .shifts { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .s-box { background: #f1f5f9; padding: 12px; border-radius: 15px; border: 1px solid #e2e8f0; }
+        .s-box h4 { margin: 0 0 8px 0; font-size: 0.85rem; color: var(--gold); display: flex; align-items: center; gap: 5px; }
+        .names { font-size: 0.9rem; line-height: 1.6; color: #334155; white-space: pre-line; font-weight: 500; }
+
+        /* البحث والإعدادات */
+        .action-bar { background: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 1rem; outline: none; }
+        .btn-main { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+
+        /* قائمة سعيد علي القادمة */
+        details { background: white; border-radius: 20px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        summary { padding: 18px; font-weight: bold; cursor: pointer; background: var(--gold); color: white; list-style: none; text-align: center; font-size: 1.1rem; }
+        .schedule-list { padding: 10px; }
+        .s-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px dashed #e2e8f0; }
+
+        #configPanel { display: none; background: white; border-radius: 20px; padding: 20px; margin-top: 10px; border: 2px solid #e2e8f0; }
+        textarea { width: 100%; height: 80px; margin-bottom: 15px; border-radius: 10px; padding: 10px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <div id="dutyAlert">⚠️ اليوم استلامك يا "سعيد علي"</div>
+
+    <header class="app-header">
+        <div class="nav-row">
+            <button class="nav-btn" onclick="nav(-1)">❮</button>
+            <h1 id="txtDay" class="main-day">السبت</h1>
+            <button class="nav-btn" onclick="nav(1)">❯</button>
+        </div>
+        <div id="txtTime" class="main-clock">00:00:00</div>
+        <div class="date-row">
+            <span id="txtHijri" class="date-chip">-- شعبان 1447</span>
+            <span id="txtGregorian" class="date-chip">-- / -- / 2026</span>
+        </div>
+    </header>
+
+    <div class="card samar">
+        <h3>👤 السامر المستلم (المسؤول)</h3>
+        <span id="resSamar" class="val">--</span>
+    </div>
+
+    <div class="card">
+        <h3>👥 <span id="resTeamTitle">الفرقة المستلمة</span></h3>
+        <div class="shifts">
+            <div class="s-box">
+                <h4>☀️ الصباحية</h4>
+                <div id="resMorning" class="names">--</div>
+            </div>
+            <div class="s-box">
+                <h4>🌙 المسائية</h4>
+                <div id="resEvening" class="names">--</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <input type="text" id="nameInput" placeholder="بحث باسم العسكري..." onkeyup="if(event.keyCode===13) search()">
+        <button class="btn-main" onclick="search()">بحث</button>
+    </div>
+    <div id="searchRes" style="display:none; background:#fff9db; padding:15px; border-radius:20px; margin-bottom:20px; border:1px solid #ffe066;"></div>
+
+    <details>
+        <summary>🗓️ جدول استلامات سعيد علي القادمة</summary>
+        <div id="saeedSchedule" class="schedule-list"></div>
+    </details>
+
+    <button class="btn-main" style="background:#64748b; width:100%; margin-bottom:30px;" onclick="toggleConfig()">⚙️ إعدادات الفرق والأسماء</button>
+
+    <div id="configPanel">
+        <h3 style="color:var(--primary)">تعديل البيانات</h3>
+        <label>السمار (افصل بـ -):</label>
+        <textarea id="cfgSamar"></textarea>
+        <p style="font-size:0.75rem; color:red">* استخدم علامة | لفصل الصباحي عن المسائي في الفرق.</p>
+        <label>الفرقة 1:</label><textarea id="cfgT1"></textarea>
+        <label>الفرقة 2:</label><textarea id="cfgT2"></textarea>
+        <label>الفرقة 3:</label><textarea id="cfgT3"></textarea>
+        <button class="btn-main" style="background:var(--success); width:100%" onclick="saveData()">حفظ التعديلات</button>
+    </div>
+
+<script>
+    // --- البيانات والمرجعيات ---
+    // المرجع المعتمد: السبت 31 يناير 2026 = 12 شعبان 1447 هـ
+    const REF_DATE = new Date(2026, 0, 31);
+    const REF_HIJRI = { d: 12, m: 8, y: 1447 };
+
+    let currentView = new Date();
+    currentView.setHours(0,0,0,0);
+
+    let sammar = JSON.parse(localStorage.getItem('sa_sammar_v3')) || ["سعيد علي", "يحي قعوان", "حسن سعيد", "مهدي هادي"];
+    let teams = JSON.parse(localStorage.getItem('sa_teams_v3')) || [
+        { n: "الفرقة الأولى", m: "عبدالعزيز جوير الله- سعيد عوض\nعبدالله مسعود- سعد سعيد | ملفي محمد - محمد راقع\nمانع علي - مفلح محمد" },
+        { n: "الفرقة الثانية", m: "حيان يحيى\nحامد سعيد - مبارك عوض | مبطي سعيد - عبدالله سعد\nمسرع ظافر - خاطر محمد" },
+        { n: "الفرقة الثالثة", m: "أحمد الهاجري- علي فايز\nجابر يحيى - عبدالهادي شباب | عبدالله ماهل - ذيب محمد\nعبدالله مهدي" }
+    ];
+
+    function render() {
+        let diff = Math.floor((currentView - REF_DATE) / 86400000);
+
+        // حساب السمار (4 أيام)
+        let sIdx = ((diff % 4) + 4) % 4;
+        document.getElementById('resSamar').innerText = sammar[sIdx];
+
+        // تنبيه سعيد علي
+        const isToday = currentView.toDateString() === new Date().toDateString();
+        document.getElementById('dutyAlert').style.display = (isToday && sammar[sIdx] === "سعيد علي") ? "block" : "none";
+
+        // حساب الفرق (3 أيام)
+        let tIdx = ((diff % 3) + 3) % 3;
+        document.getElementById('resTeamTitle').innerText = teams[tIdx].n;
+        let parts = teams[tIdx].m.split('|');
+        document.getElementById('resMorning').innerText = parts[0]?.trim() || "-";
+        document.getElementById('resEvening').innerText = parts[1]?.trim() || "-";
+
+        // التاريخ
+        document.getElementById('txtDay').innerText = currentView.toLocaleDateString('ar-SA', {weekday:'long'});
+        document.getElementById('txtGregorian').innerText = currentView.toLocaleDateString('en-GB');
+        document.getElementById('txtHijri').innerText = calculateHijri(diff);
+
+        buildSaeedSchedule();
+    }
+
+    function calculateHijri(diff) {
+        let d = REF_HIJRI.d + diff;
+        let m = REF_HIJRI.m; let y = REF_HIJRI.y;
+        while (d > 30) { d -= 30; m++; }
+        while (d < 1) { d += 30; m--; }
+        if (m > 12) { m = 1; y++; } if (m < 1) { m = 12; y--; }
+        const months = ["", "محرم", "صفر", "ربيع أول", "ربيع ثاني", "جمادى أول", "جمادى ثاني", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"];
+        return `${d} ${months[m]} ${y} هـ`;
+    }
+
+    function nav(offset) {
+        currentView.setDate(currentView.getDate() + offset);
+        render();
+    }
+
+    function search() {
+        let q = document.getElementById('nameInput').value.trim();
+        if(!q) return;
+        let res = document.getElementById('searchRes');
+        res.style.display = "block";
+        res.innerHTML = `<b>نتائج البحث عن (${q}):</b><br>`;
+        let found = 0;
+        let start = new Date(); start.setHours(0,0,0,0);
+        for(let i=-15; i<45; i++) {
+            let d = new Date(start); d.setDate(start.getDate() + i);
+            let diff = Math.floor((d - REF_DATE) / 86400000);
+            let sIdx = ((diff % 4) + 4) % 4;
+            let tIdx = ((diff % 3) + 3) % 3;
+            if(sammar[sIdx].includes(q) || teams[tIdx].m.includes(q)) {
+                res.innerHTML += `<div style="font-size:0.85rem; padding:5px 0; border-bottom:1px solid #eee;">
+                    ${d.toLocaleDateString('ar-SA', {weekday:'short', day:'numeric', month:'short'})}: 
+                    ${sammar[sIdx].includes(q) ? 'سامر مستلم' : 'فرقة مستلمة'}
+                </div>`;
+                found++;
+            }
+        }
+        if(!found) res.innerHTML += "لا يوجد استلامات قريبة بهذا الاسم.";
+    }
+
+    function buildSaeedSchedule() {
+        const div = document.getElementById('saeedSchedule');
+        div.innerHTML = "";
+        let today = new Date(); today.setHours(0,0,0,0);
+        for(let i=0; i<30; i++) {
+            let d = new Date(today); d.setDate(today.getDate() + i);
+            let diff = Math.floor((d - REF_DATE) / 86400000);
+            if(diff % 4 === 0) {
+                div.innerHTML += `<div class="s-item">
+                    <span>${d.toLocaleDateString('ar-SA', {weekday:'long', day:'numeric', month:'short'})}</span>
+                    <span style="color:var(--success); font-weight:bold;">استلام ✅</span>
+                </div>`;
+            }
+        }
+    }
+
+    function toggleConfig() {
+        let p = document.getElementById('configPanel');
+        p.style.display = p.style.display === 'block' ? 'none' : 'block';
+        document.getElementById('cfgSamar').value = sammar.join(' - ');
+        document.getElementById('cfgT1').value = teams[0].m;
+        document.getElementById('cfgT2').value = teams[1].m;
+        document.getElementById('cfgT3').value = teams[2].m;
+    }
+
+    function saveData() {
+        sammar = document.getElementById('cfgSamar').value.split('-').map(s => s.trim());
+        teams[0].m = document.getElementById('cfgT1').value;
+        teams[1].m = document.getElementById('cfgT2').value;
+        teams[2].m = document.getElementById('cfgT3').value;
+        localStorage.setItem('sa_sammar_v3', JSON.stringify(sammar));
+        localStorage.setItem('sa_teams_v3', JSON.stringify(teams));
+        alert("تم الحفظ بنجاح!");
+        location.reload();
+    }
+
+    setInterval(() => {
+        document.getElementById('txtTime').innerText = new Date().toLocaleTimeString('en-GB', {hour12:false});
+    }, 1000);
+
+    render();
+</script>
+</body>
+</html>
