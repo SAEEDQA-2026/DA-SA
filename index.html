@@ -44,7 +44,7 @@
 
         /* البحث والإعدادات */
         .action-bar { background: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 1rem; outline: none; width: 60%; }
+        input[type="text"], input[type="number"] { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 1rem; outline: none; width: 100%; }
         .btn-main { background: var(--primary); color: white; border: none; padding: 12px 15px; border-radius: 12px; font-weight: bold; cursor: pointer; }
 
         /* القائمة المنسدلة */
@@ -74,7 +74,7 @@
     </header>
 
     <div class="card samar">
-        <h3>👤 السامر المستلم (المسؤول)</h3>
+        <h3>👤 السامر المستلم</h3>
         <span id="resSamar" class="val">--</span>
     </div>
 
@@ -103,32 +103,37 @@
         <div id="saeedSchedule" class="schedule-list"></div>
     </details>
 
-    <button class="btn-main" style="background:#64748b; width:100%; margin-bottom:20px;" onclick="toggleConfig()">⚙️ إعدادات الفرق والأسماء</button>
+    <button class="btn-main" style="background:#64748b; width:100%; margin-bottom:20px;" onclick="toggleConfig()">⚙️ إعدادات الفرق والتاريخ والأسماء</button>
 
     <div id="configPanel">
         <h3 style="color:var(--primary); margin-top:0;">تعديل البيانات</h3>
-        <label>السمار (افصل بـ -):</label>
+        
+        <label><b>🌙 تعديل التاريخ الهجري (أيام +/-):</b></label>
+        <input type="number" id="cfgHijriOffset" style="margin-top:5px; margin-bottom:15px;" placeholder="0">
+        
+        <label><b>السمار (افصل بـ -):</b></label>
         <textarea id="cfgSamar"></textarea>
-        <p style="font-size:0.7rem; color:red">* استخدم علامة | لفصل الصباحي عن المسائي.</p>
-        <label>الفرقة 1:</label><textarea id="cfgT1"></textarea>
-        <label>الفرقة 2:</label><textarea id="cfgT2"></textarea>
-        <label>الفرقة 3:</label><textarea id="cfgT3"></textarea>
+        <p style="font-size:0.7rem; color:red; margin-top:-10px;">* استخدم علامة | لفصل الصباحي عن المسائي.</p>
+        
+        <label><b>الفرقة 1:</b></label><textarea id="cfgT1"></textarea>
+        <label><b>الفرقة 2:</b></label><textarea id="cfgT2"></textarea>
+        <label><b>الفرقة 3:</b></label><textarea id="cfgT3"></textarea>
+        
         <button class="btn-main" style="background:var(--success); width:100%" onclick="saveData()">حفظ التعديلات</button>
     </div>
 
 <script>
     // --- المرجع والبيانات الهجرية الدقيقة ---
-    // المرجع: السبت 31 يناير 2026 = 12 شعبان 1447 هـ
     const REF_DATE = new Date(2026, 0, 31);
     const REF_HIJRI = { d: 12, m: 8, y: 1447 };
 
-    // أطوال الأشهر حسب طلبك (Index 1: Muharram)
     const hijriMonthLengths = [0, 30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 29];
     const hijriMonthNames = ["", "محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"];
 
     let currentView = new Date();
     currentView.setHours(0,0,0,0);
 
+    let hijriOffset = JSON.parse(localStorage.getItem('sa_hijri_offset_v4')) || 0;
     let sammar = JSON.parse(localStorage.getItem('sa_sammar_v4')) || ["سعيد علي", "يحي قعوان", "حسن سعيد", "مهدي هادي"];
     let teams = JSON.parse(localStorage.getItem('sa_teams_v4')) || [
         { n: "الفرقة الأولى", m: "عبدالعزيز جوير الله- سعيد عوض\nعبدالله مسعود- سعد سعيد | ملفي محمد - محمد راقع\nمانع علي - مفلح محمد" },
@@ -137,20 +142,21 @@
     ];
 
     function calculateHijri(diff) {
+        let totalDiff = diff + hijriOffset;
         let d = REF_HIJRI.d;
         let m = REF_HIJRI.m;
         let y = REF_HIJRI.y;
 
-        if (diff > 0) {
-            for (let i = 0; i < diff; i++) {
+        if (totalDiff > 0) {
+            for (let i = 0; i < totalDiff; i++) {
                 d++;
                 if (d > hijriMonthLengths[m]) {
                     d = 1; m++;
                     if (m > 12) { m = 1; y++; }
                 }
             }
-        } else if (diff < 0) {
-            for (let i = 0; i < Math.abs(diff); i++) {
+        } else if (totalDiff < 0) {
+            for (let i = 0; i < Math.abs(totalDiff); i++) {
                 d--;
                 if (d < 1) {
                     m--;
@@ -236,6 +242,7 @@
     function toggleConfig() {
         let p = document.getElementById('configPanel');
         p.style.display = p.style.display === 'block' ? 'none' : 'block';
+        document.getElementById('cfgHijriOffset').value = hijriOffset;
         document.getElementById('cfgSamar').value = sammar.join(' - ');
         document.getElementById('cfgT1').value = teams[0].m;
         document.getElementById('cfgT2').value = teams[1].m;
@@ -243,10 +250,13 @@
     }
 
     function saveData() {
+        hijriOffset = parseInt(document.getElementById('cfgHijriOffset').value) || 0;
         sammar = document.getElementById('cfgSamar').value.split('-').map(s => s.trim());
         teams[0].m = document.getElementById('cfgT1').value;
         teams[1].m = document.getElementById('cfgT2').value;
         teams[2].m = document.getElementById('cfgT3').value;
+        
+        localStorage.setItem('sa_hijri_offset_v4', JSON.stringify(hijriOffset));
         localStorage.setItem('sa_sammar_v4', JSON.stringify(sammar));
         localStorage.setItem('sa_teams_v4', JSON.stringify(teams));
         alert("تم الحفظ بنجاح!");
