@@ -99,7 +99,11 @@
     <div id="searchRes" style="display:none; background:#fff9db; padding:15px; border-radius:20px; margin-bottom:20px; border:1px solid #ffe066; font-size: 0.9rem;"></div>
 
     <details>
-        <summary>🗓️ جدول استلامات سعيد علي القادمة</summary>
+        <summary>🗓️ جدول استلامات سعيد علي</summary>
+        <div style="background:#f1f5f9; padding:10px; display:flex; gap:10px; border-bottom:1px solid #e2e8f0; align-items:center;">
+            <button class="btn-main" style="flex:1; padding:8px; font-size:0.85rem;" onclick="showUpcoming10()">10 القادمة</button>
+            <input type="month" id="scheduleMonth" style="flex:1.5; padding:8px; border-radius:10px; border:1px solid #cbd5e1; font-family:inherit; outline:none; font-size:0.9rem;" onchange="showMonthSchedule()">
+        </div>
         <div id="saeedSchedule" class="schedule-list"></div>
     </details>
 
@@ -224,18 +228,77 @@
     }
 
     function buildSaeedSchedule() {
+        // تهيئة حقل الشهر بالتاريخ الحالي
+        let now = new Date();
+        let y = now.getFullYear();
+        let m = String(now.getMonth() + 1).padStart(2, '0');
+        document.getElementById('scheduleMonth').value = `${y}-${m}`;
+        
+        // عرض الـ 10 القادمة بشكل افتراضي
+        showUpcoming10();
+    }
+
+    function showUpcoming10() {
         const div = document.getElementById('saeedSchedule');
-        div.innerHTML = "";
+        div.innerHTML = `<div style="text-align:center; padding:10px; font-weight:bold; color:var(--primary); font-size:0.9rem; background:#e2e8f0;">الاستلامات الـ 10 القادمة</div>`;
+        
         let today = new Date(); today.setHours(0,0,0,0);
-        for(let i=-5; i<40; i++) {
+        let count = 0;
+        let i = 0;
+        
+        while(count < 10 && i < 365) {
             let d = new Date(today); d.setDate(today.getDate() + i);
             let diff = Math.floor((d - REF_DATE) / 86400000);
-            if(diff % 4 === 0) {
+            let sIdx = ((diff % 4) + 4) % 4;
+            
+            if(sammar[sIdx].includes("سعيد علي")) {
+                let statusText = i === 0 ? 'استلام اليوم 🚨' : 'استلام ✅';
+                let statusColor = i === 0 ? 'var(--accent)' : 'var(--success)';
+
                 div.innerHTML += `<div class="s-item">
                     <span>${d.toLocaleDateString('ar-SA', {weekday:'long', day:'numeric', month:'short'})}</span>
-                    <span style="color:${i<0?'#999': 'var(--success)'}; font-weight:bold;">${i<0?'انتهى':'استلام ✅'}</span>
+                    <span style="color:${statusColor}; font-weight:bold;">${statusText}</span>
                 </div>`;
+                count++;
             }
+            i++;
+        }
+    }
+
+    function showMonthSchedule() {
+        let monthVal = document.getElementById('scheduleMonth').value;
+        if(!monthVal) return;
+        
+        let [year, month] = monthVal.split('-');
+        let startOfMonth = new Date(year, month - 1, 1);
+        let endOfMonth = new Date(year, month, 0);
+        
+        const div = document.getElementById('saeedSchedule');
+        div.innerHTML = `<div style="text-align:center; padding:10px; font-weight:bold; color:var(--primary); font-size:0.9rem; background:#e2e8f0;">استلامات شهر ${month} / ${year}</div>`;
+        
+        let today = new Date(); today.setHours(0,0,0,0);
+        let found = 0;
+
+        for(let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
+            let diff = Math.floor((d - REF_DATE) / 86400000);
+            let sIdx = ((diff % 4) + 4) % 4;
+            
+            if(sammar[sIdx].includes("سعيد علي")) {
+                let isPast = d < today;
+                let isToday = d.getTime() === today.getTime();
+                let statusText = isPast ? 'انتهى' : (isToday ? 'استلام اليوم 🚨' : 'استلام ✅');
+                let statusColor = isPast ? '#999' : (isToday ? 'var(--accent)' : 'var(--success)');
+
+                div.innerHTML += `<div class="s-item">
+                    <span>${d.toLocaleDateString('ar-SA', {weekday:'long', day:'numeric', month:'short'})}</span>
+                    <span style="color:${statusColor}; font-weight:bold;">${statusText}</span>
+                </div>`;
+                found++;
+            }
+        }
+        
+        if(found === 0) {
+            div.innerHTML += `<div class="s-item" style="justify-content:center; color:#64748b;">لا يوجد استلامات في هذا الشهر</div>`;
         }
     }
 
