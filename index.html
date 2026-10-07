@@ -36,8 +36,12 @@
         .card h3 { margin: 0 0 12px 0; font-size: 0.9rem; color: #64748b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
         .card .val { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
 
+        /* خانة الخفير */
+        .guard-box { background: #fff1f2; border: 1px solid #fecdd3; border-right: 5px solid var(--accent); padding: 12px 15px; border-radius: 14px; margin-bottom: 12px; }
+        .guard-box h4 { margin: 0 0 4px 0; font-size: 0.85rem; color: var(--accent); font-weight: bold; }
+
         /* تقسيم الفترات */
-        .shifts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .shifts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         .s-box { background: #f1f5f9; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .s-box h4 { margin: 0 0 5px 0; font-size: 0.8rem; color: var(--gold); }
         .names { font-size: 0.85rem; line-height: 1.5; color: #334155; white-space: pre-line; font-weight: 500; }
@@ -53,7 +57,7 @@
         .s-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px dashed #e2e8f0; font-size: 0.9rem; }
 
         #configPanel { display: none; background: white; border-radius: 20px; padding: 20px; border: 2px solid #e2e8f0; margin-bottom: 30px; }
-        textarea { width: 100%; height: 70px; margin-bottom: 15px; border-radius: 10px; padding: 10px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 0.85rem; }
+        textarea { width: 100%; height: 65px; margin-bottom: 15px; border-radius: 10px; padding: 10px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -80,6 +84,13 @@
 
     <div class="card">
         <h3>👥 <span id="resTeamTitle">الفرقة المستلمة</span></h3>
+        
+        <!-- خانة الخفير -->
+        <div class="guard-box">
+            <h4>🛡️ الخفير</h4>
+            <div id="resGuard" class="names" style="font-weight:bold; font-size:1.05rem;">--</div>
+        </div>
+
         <div class="shifts">
             <div class="s-box">
                 <h4>☀️ الصباحية</h4>
@@ -119,18 +130,25 @@
         
         <label><b>السمار (افصل بـ -):</b></label>
         <textarea id="cfgSamar"></textarea>
-        <p style="font-size:0.7rem; color:red; margin-top:-10px;">* استخدم علامة | لفصل الصباحي عن المسائي.</p>
+        <p style="font-size:0.7rem; color:red; margin-top:-10px;">* استخدم علامة | لفصل الصباحي عن المسائي داخل أفراد الفرقة.</p>
         
-        <label><b>الفرقة 1:</b></label><textarea id="cfgT1"></textarea>
-        <label><b>الفرقة 2:</b></label><textarea id="cfgT2"></textarea>
-        <label><b>الفرقة 3:</b></label><textarea id="cfgT3"></textarea>
+        <label><b>الفرقة 1:</b></label>
+        <input type="text" id="cfgG1" placeholder="خفير الفرقة الأولى" style="margin-top:4px; margin-bottom:6px;">
+        <textarea id="cfgT1"></textarea>
+
+        <label><b>الفرقة 2:</b></label>
+        <input type="text" id="cfgG2" placeholder="خفير الفرقة الثانية" style="margin-top:4px; margin-bottom:6px;">
+        <textarea id="cfgT2"></textarea>
+
+        <label><b>الفرقة 3:</b></label>
+        <input type="text" id="cfgG3" placeholder="خفير الفرقة الثالثة" style="margin-top:4px; margin-bottom:6px;">
+        <textarea id="cfgT3"></textarea>
         
         <button class="btn-main" style="background:var(--success); width:100%" onclick="saveData()">حفظ التعديلات</button>
     </div>
 
 <script>
     // --- المرجع والبيانات الهجرية الدقيقة ---
-    // التاريخ المرجعي 31-01-2026 كان يوم السبت
     const REF_DATE = new Date(2026, 0, 31);
     const REF_HIJRI = { d: 12, m: 8, y: 1447 };
 
@@ -140,13 +158,18 @@
     let currentView = new Date();
     currentView.setHours(0,0,0,0);
 
-    let hijriOffset = JSON.parse(localStorage.getItem('sa_hijri_offset_v4')) || 0;
-    let shiftMode = localStorage.getItem('sa_shift_mode_v4') || '1x2';
-    let sammar = JSON.parse(localStorage.getItem('sa_sammar_v4')) || ["سعيد علي", "يحي قعوان", "حسن سعيد", "مهدي هادي"];
-    let teams = JSON.parse(localStorage.getItem('sa_teams_v4')) || [
-        { n: "الفرقة الأولى", m: "عبدالعزيز جوير الله- سعيد عوض\nعبدالله مسعود- سعد سعيد | ملفي محمد - محمد راقع\nمانع علي - مفلح محمد" },
-        { n: "الفرقة الثانية", m: "حيان يحيى\nحامد سعيد - مبارك عوض | مبطي سعيد - عبدالله سعد\nمسرع ظافر - خاطر محمد" },
-        { n: "الفرقة الثالثة", m: "أحمد الهاجري- علي فايز\nجابر يحيى - عبدالهادي شباب | عبدالله ماهل - ذيب محمد\nعبدالله مهدي" }
+    // تم تغيير مفاتيح الذاكرة إلى v6 لضمان تحديث التشكيل الجديد للفرق عند كل المستخدمين
+    let hijriOffset = JSON.parse(localStorage.getItem('sa_hijri_offset_v6')) || 0;
+    let shiftMode = localStorage.getItem('sa_shift_mode_v6') || '1x2';
+    
+    // قائمة السمار
+    let sammar = JSON.parse(localStorage.getItem('sa_sammar_v6')) || ["سعيد علي", "عبدالعزيز جوير الله", "حسن سعيد", "مهدي هادي"];
+    
+    // التحديث الجديد لأطقم الفرق مع الاحتفاظ بالخفارات
+    let teams = JSON.parse(localStorage.getItem('sa_teams_v6')) || [
+        { n: "الفرقة الأولى", g: "مسفر عبدالله", m: "أحمد الهاجري- علي فايز\nجابريحي - عبدالهادي شباب | يحي سعيد -ابراهيم حسين\nعبدالله مهدي- عبدالله ماهل" },
+        { n: "الفرقة الثانية", g: "صالح مهدي", m: "حامد سعيد- عبدالله مسعود\nرفعان محمد -0 | ملفي محمد -محمد راقع\nسعيد عوض -حيان يحي" },
+        { n: "الفرقة الثالثة", g: "فارس قحيصان", m: "مبطي سعيد- عبدالله سعد\nخاطر محمد - مسرع ظافر | مبارك عوض- مفلح محمد\nمانع علي-ذيب محمد" }
     ];
 
     function calculateHijri(diff) {
@@ -179,34 +202,34 @@
     function render() {
         let diff = Math.floor((currentView - REF_DATE) / 86400000);
 
-        // حساب السمار (كل 4 أيام)
-        let sIdx = ((diff % 4) + 4) % 4;
-        document.getElementById('resSamar').innerText = sammar[sIdx];
+        // حساب السمار (الخميس يوافق diff = 250)
+        let sIdx = (((diff - 250) % 4) + 4) % 4;
+        document.getElementById('resSamar').innerText = sammar[sIdx] || "--";
 
-        // تنبيه سعيد علي
-        const isToday = currentView.toDateString() === new Date().toDateString();
-        document.getElementById('dutyAlert').style.display = (isToday && sammar[sIdx] === "سعيد علي") ? "block" : "none";
-
-        // حساب الفرق بناءً على النمط المختار
+        // حساب الفرق (الفرقة الأولى تستلم يوم الخميس)
         let tIdx;
         if (shiftMode === '2x4') {
-            let cycleDay = ((diff % 6) + 6) % 6;
-            // دورة 6 أيام تبدأ السبت: 
-            // 0, 1 (سبت وأحد) -> الفرقة الثانية (index 1)
-            // 2, 3 (إثنين وثلاثاء) -> الفرقة الثالثة (index 2)
-            // 4, 5 (أربعاء وخميس) -> الفرقة الأولى (index 0)
-            if (cycleDay === 0 || cycleDay === 1) tIdx = 1;
-            else if (cycleDay === 2 || cycleDay === 3) tIdx = 2;
-            else tIdx = 0;
+            let cycleDay = (((diff - 250) % 6) + 6) % 6;
+            if (cycleDay === 0 || cycleDay === 1) tIdx = 0;
+            else if (cycleDay === 2 || cycleDay === 3) tIdx = 1;
+            else tIdx = 2;
         } else {
             // يوم بيومين (الافتراضي)
-            tIdx = ((diff % 3) + 3) % 3;
+            tIdx = (((diff - 250) % 3) + 3) % 3;
         }
         
         document.getElementById('resTeamTitle').innerText = teams[tIdx].n;
-        let parts = teams[tIdx].m.split('|');
+        document.getElementById('resGuard').innerText = teams[tIdx].g || "غير محدد";
+        
+        let parts = (teams[tIdx].m || "").split('|');
         document.getElementById('resMorning').innerText = parts[0]?.trim() || "-";
         document.getElementById('resEvening').innerText = parts[1]?.trim() || "-";
+
+        // تنبيه سعيد علي
+        const isToday = currentView.toDateString() === new Date().toDateString();
+        let teamMembersText = (teams[tIdx].m || "") + " " + (teams[tIdx].g || "");
+        let isSaeedDutyToday = isToday && ((sammar[sIdx] || "").includes("سعيد علي") || teamMembersText.includes("سعيد علي"));
+        document.getElementById('dutyAlert').style.display = isSaeedDutyToday ? "block" : "none";
 
         // التواريخ
         document.getElementById('txtDay').innerText = currentView.toLocaleDateString('ar-SA', {weekday:'long'});
@@ -233,22 +256,32 @@
             let d = new Date(start); d.setDate(start.getDate() + i);
             let diff = Math.floor((d - REF_DATE) / 86400000);
             
-            let sIdx = ((diff % 4) + 4) % 4;
+            let sIdx = (((diff - 250) % 4) + 4) % 4;
             let tIdx;
             
             if (shiftMode === '2x4') {
-                let cycleDay = ((diff % 6) + 6) % 6;
-                if (cycleDay === 0 || cycleDay === 1) tIdx = 1;
-                else if (cycleDay === 2 || cycleDay === 3) tIdx = 2;
-                else tIdx = 0;
+                let cycleDay = (((diff - 250) % 6) + 6) % 6;
+                if (cycleDay === 0 || cycleDay === 1) tIdx = 0;
+                else if (cycleDay === 2 || cycleDay === 3) tIdx = 1;
+                else tIdx = 2;
             } else {
-                tIdx = ((diff % 3) + 3) % 3;
+                tIdx = (((diff - 250) % 3) + 3) % 3;
             }
 
-            if(sammar[sIdx].includes(q) || teams[tIdx].m.includes(q)) {
+            let isSamarMatch = sammar[sIdx] && sammar[sIdx].includes(q);
+            let teamFullText = (teams[tIdx].m || "") + " " + (teams[tIdx].g || "");
+            let isTeamMatch = teamFullText.includes(q);
+
+            if(isSamarMatch || isTeamMatch) {
+                let roles = [];
+                if(isSamarMatch) roles.push("سامر");
+                if(isTeamMatch) {
+                    if(teams[tIdx].g && teams[tIdx].g.includes(q)) roles.push(`خفير (${teams[tIdx].n})`);
+                    else roles.push(teams[tIdx].n);
+                }
                 res.innerHTML += `<div style="padding:5px 0; border-bottom:1px solid #eee;">
                     ${d.toLocaleDateString('ar-SA', {weekday:'short', day:'numeric', month:'short'})}: 
-                    ${sammar[sIdx].includes(q) ? 'سامر' : 'فرقة'}
+                    <b>${roles.join(" + ")}</b>
                 </div>`;
                 found++;
             }
@@ -256,19 +289,55 @@
         if(!found) res.innerHTML += "لا يوجد استلامات قريبة.";
     }
 
+    // بناء جدول سعيد علي
     function buildSaeedSchedule() {
         const div = document.getElementById('saeedSchedule');
         div.innerHTML = "";
         let today = new Date(); today.setHours(0,0,0,0);
+        let nameToSearch = "سعيد علي";
+        let foundCount = 0;
+
         for(let i=-5; i<40; i++) {
             let d = new Date(today); d.setDate(today.getDate() + i);
             let diff = Math.floor((d - REF_DATE) / 86400000);
-            if(diff % 4 === 0) {
+            
+            let sIdx = (((diff - 250) % 4) + 4) % 4;
+            let tIdx;
+            if (shiftMode === '2x4') {
+                let cycleDay = (((diff - 250) % 6) + 6) % 6;
+                if (cycleDay === 0 || cycleDay === 1) tIdx = 0;
+                else if (cycleDay === 2 || cycleDay === 3) tIdx = 1;
+                else tIdx = 2;
+            } else {
+                tIdx = (((diff - 250) % 3) + 3) % 3;
+            }
+
+            let isSamar = sammar[sIdx] && sammar[sIdx].includes(nameToSearch);
+            let teamText = (teams[tIdx].m || "") + " " + (teams[tIdx].g || "");
+            let isTeam = teamText.includes(nameToSearch);
+
+            if (isSamar || isTeam) {
+                foundCount++;
+                let details = [];
+                if (isSamar) details.push("سامر");
+                if (isTeam) {
+                    if (teams[tIdx].g && teams[tIdx].g.includes(nameToSearch)) details.push(`خفير (${teams[tIdx].n})`);
+                    else details.push(teams[tIdx].n);
+                }
+                
+                let info = details.join(" + ");
+
                 div.innerHTML += `<div class="s-item">
                     <span>${d.toLocaleDateString('ar-SA', {weekday:'long', day:'numeric', month:'short'})}</span>
-                    <span style="color:${i<0?'#999': 'var(--success)'}; font-weight:bold;">${i<0?'انتهى':'استلام ✅'}</span>
+                    <span style="color:${i<0?'#999': 'var(--success)'}; font-weight:bold;">
+                        ${i<0 ? 'انتهى (' + info + ')' : 'استلام ✅ (' + info + ')'}
+                    </span>
                 </div>`;
             }
+        }
+
+        if (foundCount === 0) {
+            div.innerHTML = `<div style="padding:15px; text-align:center; color:#64748b;">لا توجد استلامات مسجلة باسم "سعيد علي" حسب التوزيع الحالي.</div>`;
         }
     }
 
@@ -278,24 +347,36 @@
         document.getElementById('cfgShiftMode').value = shiftMode;
         document.getElementById('cfgHijriOffset').value = hijriOffset;
         document.getElementById('cfgSamar').value = sammar.join(' - ');
-        document.getElementById('cfgT1').value = teams[0].m;
-        document.getElementById('cfgT2').value = teams[1].m;
-        document.getElementById('cfgT3').value = teams[2].m;
+        
+        document.getElementById('cfgG1').value = teams[0].g || "";
+        document.getElementById('cfgT1').value = teams[0].m || "";
+        
+        document.getElementById('cfgG2').value = teams[1].g || "";
+        document.getElementById('cfgT2').value = teams[1].m || "";
+        
+        document.getElementById('cfgG3').value = teams[2].g || "";
+        document.getElementById('cfgT3').value = teams[2].m || "";
     }
 
     function saveData() {
         shiftMode = document.getElementById('cfgShiftMode').value;
         hijriOffset = parseInt(document.getElementById('cfgHijriOffset').value) || 0;
         sammar = document.getElementById('cfgSamar').value.split('-').map(s => s.trim());
+        
+        teams[0].g = document.getElementById('cfgG1').value.trim();
         teams[0].m = document.getElementById('cfgT1').value;
+        
+        teams[1].g = document.getElementById('cfgG2').value.trim();
         teams[1].m = document.getElementById('cfgT2').value;
+        
+        teams[2].g = document.getElementById('cfgG3').value.trim();
         teams[2].m = document.getElementById('cfgT3').value;
         
-        localStorage.setItem('sa_shift_mode_v4', shiftMode);
-        localStorage.setItem('sa_hijri_offset_v4', JSON.stringify(hijriOffset));
-        localStorage.setItem('sa_sammar_v4', JSON.stringify(sammar));
-        localStorage.setItem('sa_teams_v4', JSON.stringify(teams));
-        alert("تم الحفظ بنجاح!");
+        localStorage.setItem('sa_shift_mode_v6', shiftMode);
+        localStorage.setItem('sa_hijri_offset_v6', JSON.stringify(hijriOffset));
+        localStorage.setItem('sa_sammar_v6', JSON.stringify(sammar));
+        localStorage.setItem('sa_teams_v6', JSON.stringify(teams));
+        alert("تم حفظ التعديلات بنجاح!");
         location.reload();
     }
 
@@ -307,3 +388,4 @@
 </script>
 </body>
 </html>
+```<FollowUp>
